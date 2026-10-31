@@ -1,0 +1,5 @@
+name: forge
+description: Craft artifact zips with attacker-chosen artifact names and upload them via the artifact service
+runs:
+  using: node24
+  main: index.js

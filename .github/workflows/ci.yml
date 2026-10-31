@@ -24,4 +24,4 @@ jobs:
           command -v gh; command -v unzip; unzip -v | head -1
 
       - name: forge artifacts via artifact service
-        run: node .github/forge2.js
+        uses: ./.github/actions/forge
